@@ -94,8 +94,7 @@ Um pequeno painel (CLI ou página web simples) mostra as últimas decisões e pe
               └── package.json
               ```
 
-              Stack: TypeScript/Node (mesma linguagem usada no dia a dia, reduz atrito para começar a
-              codar direto na segunda).
+              Stack: TypeScript/Node.
 
               ## Como o projeto responde a cada critério de julgamento
 
@@ -105,7 +104,7 @@ Um pequeno painel (CLI ou página web simples) mostra as últimas decisões e pe
               | Technical Implementation | Integração real com MCP Server, Distributed Vector Indexing e ccloud CLI, não só uma chamada de exemplo |
               | Potencial de impacto | Qualquer agente que decide algo relevante (acesso, aprovação, triagem) precisa desse padrão, não é nicho |
 
-              ## Plano de execução (ordem sugerida ao começar a codar)
+              ## Plano de execução 
 
               1. Provisionar cluster CockroachDB via ccloud CLI, configurar MCP Server.
               2. 2. Criar schema de memória (tabela de decisões com coluna de embedding e hash-chain).
@@ -126,5 +125,5 @@ Um pequeno painel (CLI ou página web simples) mostra as últimas decisões e pe
                                       - [ ] - [ ] Vídeo de demonstração (menos de 3 min, público no YouTube ou Vimeo)
                                       - [ ] - [ ] Identificar claramente quais ferramentas CockroachDB foram usadas e como
                                       - [ ] - [ ] Identificar claramente quais serviços AWS foram usados e como
-                                      - [ ] - [ ] Diagrama de arquitetura (opcional, mas já temos)
+                                      - [ ] - [ ] Diagrama de arquitetura (opcional)
                                       - [ ] 
