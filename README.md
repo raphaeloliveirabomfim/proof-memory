@@ -2,6 +2,8 @@
 ### Memória de agente como evidência, não como cache
 **CockroachDB × AWS Hackathon — Build with Agentic Memory**
 
+Status: em desenvolvimento para submissão no CockroachDB × AWS Hackathon (prazo 18 de agosto de 2026).
+
 ---
 
 ## Tese
@@ -26,8 +28,9 @@ do tipo "preciso de acesso elevado ao banco de produção por 24 horas". Ele pre
 aprovar, negar ou escalar, de forma consistente com decisões anteriores parecidas, e deixar
 um rastro que qualquer auditor consiga verificar depois sem confiar na palavra do agente.
 
-Esse domínio é deliberadamente genérico (não usa nenhum dado ou cliente real), mas espelha
-o tipo de problema de governança de decisão que já é familiar no dia a dia de trabalho.
+Esse domínio é deliberadamente genérico, mas espelha um padrão real de governança de
+decisão em sistemas de produção: manter consistência com o histórico e deixar rastro
+verificável.
 
 ## Arquitetura
 
@@ -59,8 +62,7 @@ Pedido do usuário
 ```
 
 Um pequeno painel (CLI ou página web simples) mostra as últimas decisões e permite rodar
-"verificar memória", que percorre a cadeia de hashes e confirma que nada foi alterado. Isso
-é o que vira o vídeo de demonstração.
+"verificar memória", que percorre a cadeia de hashes e confirma que nada foi alterado.
 
 ## Ferramentas exigidas e como são usadas
 
@@ -79,17 +81,17 @@ Um pequeno painel (CLI ou página web simples) mostra as últimas decisões e pe
          
           -   ```
               proof-memory/
-              ├── README.md                  (este plano, adaptado para leitor externo/jurado)
+              ├── README.md
               ├── LICENSE                    (MIT)
               ├── docs/
-              │   └── architecture.png       (diagrama da arquitetura acima)
+              │   └── architecture.png       diagrama da arquitetura acima
               ├── src/
               │   ├── agent/                 orquestração do agente, chamada ao Bedrock
               │   ├── memory/                schema CockroachDB, hash-chain, queries vetoriais
               │   ├── aws/                   cliente Bedrock (embeddings + reasoning)
               │   └── demo/                  CLI/página de demonstração + comando "verificar memória"
               ├── scripts/
-              │   └── seed.ts                popula alguns casos históricos de exemplo
+              │   └── seed.ts                popula casos históricos de exemplo
               ├── .env.example
               └── package.json
               ```
@@ -104,26 +106,14 @@ Um pequeno painel (CLI ou página web simples) mostra as últimas decisões e pe
               | Technical Implementation | Integração real com MCP Server, Distributed Vector Indexing e ccloud CLI, não só uma chamada de exemplo |
               | Potencial de impacto | Qualquer agente que decide algo relevante (acesso, aprovação, triagem) precisa desse padrão, não é nicho |
 
-              ## Plano de execução 
+              ## Roadmap de implementação
 
               1. Provisionar cluster CockroachDB via ccloud CLI, configurar MCP Server.
               2. 2. Criar schema de memória (tabela de decisões com coluna de embedding e hash-chain).
                  3. 3. Conectar Bedrock (Titan Embeddings + Claude) via SDK AWS.
                     4. 4. Implementar o loop do agente: recall → verificação de cadeia → raciocínio → commit.
-                       5. 5. Popular casos históricos de exemplo (seed.ts) para o agente ter memória desde o início.
-                          6. 6. Construir a demo (CLI é suficiente, página web só se sobrar tempo).
-                             7. 7. Gravar vídeo de demonstração (menos de 3 minutos): mostrar um pedido novo, o agente
-                                8.    recuperando um caso parecido, decidindo, e depois "verificar memória" confirmando a
-                                9.   integridade da cadeia.
-                                10.   8. Escrever o README final para submissão (problema, arquitetura, ferramentas usadas,
-                                      9.    como rodar, link do vídeo).
-                                   
-                                      10.## Checklist de submissão (Devpost)
-
-                                      - [ ] Repositório público, com licença open source (MIT)
-                                      - [ ] - [ ] README completo com instruções de setup e execução
-                                      - [ ] - [ ] Vídeo de demonstração (menos de 3 min, público no YouTube ou Vimeo)
-                                      - [ ] - [ ] Identificar claramente quais ferramentas CockroachDB foram usadas e como
-                                      - [ ] - [ ] Identificar claramente quais serviços AWS foram usados e como
-                                      - [ ] - [ ] Diagrama de arquitetura (opcional)
-                                      - [ ] 
+                       5. 5. Popular casos históricos de exemplo para o agente ter memória desde o início.
+                          6. 6. Construir a demo (CLI).
+                             7. 7. Gravar vídeo de demonstração: mostrar um pedido novo, o agente recuperando um caso
+                                8.    parecido, decidindo, e depois "verificar memória" confirmando a integridade da cadeia.
+                                9.
