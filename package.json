@@ -1,0 +1,29 @@
+{
+  "name": "proof-memory",
+  "version": "0.1.0",
+  "description": "Memoria de agente como evidencia: hash-chain + indice vetorial no CockroachDB (CockroachDB x AWS Hackathon)",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:ping": "tsx src/memory/ping.ts",
+    "db:schema": "tsx src/memory/schema.ts",
+    "seed": "tsx scripts/seed.ts",
+    "demo": "tsx src/demo/cli.ts",
+    "verify": "tsx src/demo/cli.ts verify",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.658.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "@types/pg": "^8.11.10",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
