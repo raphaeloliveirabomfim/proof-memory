@@ -11,6 +11,7 @@
     "db:ping": "tsx src/memory/ping.ts",
     "db:schema": "tsx src/memory/schema.ts",
     "seed": "tsx scripts/seed.ts",
+    "smoke": "tsx scripts/smoke.ts",
     "demo": "tsx src/demo/cli.ts",
     "verify": "tsx src/demo/cli.ts verify",
     "typecheck": "tsc --noEmit"

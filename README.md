@@ -61,59 +61,95 @@ Pedido do usuário
 [7] Resposta ao usuário + decision_id (o "recibo de memória")
 ```
 
-Um pequeno painel (CLI ou página web simples) mostra as últimas decisões e permite rodar
-"verificar memória", que percorre a cadeia de hashes e confirma que nada foi alterado.
+Uma CLI de demonstração mostra as últimas decisões e permite rodar "verificar memória",
+que percorre a cadeia de hashes e confirma que nada foi alterado.
 
 ## Ferramentas exigidas e como são usadas
 
 **CockroachDB (mínimo 2 exigidas, projeto usa 3):**
-- **Managed MCP Server**: o agente se conecta ao cluster CockroachDB diretamente via MCP,
--   para leitura e escrita dos registros de decisão.
--   - **Distributed Vector Indexing**: guarda o embedding de cada decisão e permite buscar as
-    -   decisões mais parecidas com o pedido atual.
-    -   - **ccloud CLI**: provisionamento do cluster e configuração de rede feitos via CLI, agent-ready.
-     
-        - **AWS (mínimo 1 exigida, projeto usa 1):**
-        - - **Amazon Bedrock**: modelo de raciocínio (Claude via Bedrock) para decidir a ação, e
-          -   Titan Embeddings para gerar os vetores de contexto.
-         
-          -   ## Estrutura do repositório
-         
-          -   ```
-              proof-memory/
-              ├── README.md
-              ├── LICENSE                    (MIT)
-              ├── docs/
-              │   └── architecture.png       diagrama da arquitetura acima
-              ├── src/
-              │   ├── agent/                 orquestração do agente, chamada ao Bedrock
-              │   ├── memory/                schema CockroachDB, hash-chain, queries vetoriais
-              │   ├── aws/                   cliente Bedrock (embeddings + reasoning)
-              │   └── demo/                  CLI/página de demonstração + comando "verificar memória"
-              ├── scripts/
-              │   └── seed.ts                popula casos históricos de exemplo
-              ├── .env.example
-              └── package.json
-              ```
 
-              Stack: TypeScript/Node.
+- **Managed MCP Server** — o agente se conecta ao cluster diretamente via MCP, para leitura
+  e escrita dos registros de decisão. Configurado em [`.mcp.json`](.mcp.json); detalhes em
+  [`docs/mcp-server.md`](docs/mcp-server.md).
+- **Distributed Vector Indexing** — guarda o embedding de cada decisão (`VECTOR(1024)` com
+  índice `vector_l2_ops`) e permite buscar as decisões mais parecidas com o pedido atual.
+- **ccloud CLI** — provisionamento do cluster e configuração de rede feitos via CLI,
+  agent-ready.
 
-              ## Como o projeto responde a cada critério de julgamento
+**AWS (mínimo 1 exigida, projeto usa 1):**
 
-              | Critério | Como o ProofMemory responde |
-              |---|---|
-              | Agentic Memory Design | CockroachDB não é cache, é o sistema de registro da decisão do agente: semântico (vetor) e íntegro (hash-chain), distribuído e sempre disponível |
-              | Technical Implementation | Integração real com MCP Server, Distributed Vector Indexing e ccloud CLI, não só uma chamada de exemplo |
-              | Potencial de impacto | Qualquer agente que decide algo relevante (acesso, aprovação, triagem) precisa desse padrão, não é nicho |
+- **Amazon Bedrock** — Claude como modelo de raciocínio para decidir a ação, e Titan
+  Embeddings para gerar os vetores de contexto.
 
-              ## Roadmap de implementação
+## Estrutura do repositório
 
-              1. Provisionar cluster CockroachDB via ccloud CLI, configurar MCP Server.
-              2. 2. Criar schema de memória (tabela de decisões com coluna de embedding e hash-chain).
-                 3. 3. Conectar Bedrock (Titan Embeddings + Claude) via SDK AWS.
-                    4. 4. Implementar o loop do agente: recall → verificação de cadeia → raciocínio → commit.
-                       5. 5. Popular casos históricos de exemplo para o agente ter memória desde o início.
-                          6. 6. Construir a demo (CLI).
-                             7. 7. Gravar vídeo de demonstração: mostrar um pedido novo, o agente recuperando um caso
-                                8.    parecido, decidindo, e depois "verificar memória" confirmando a integridade da cadeia.
-                                9.
+```
+proof-memory/
+├── README.md
+├── LICENSE                      (MIT)
+├── .mcp.json                    Managed MCP Server (project-scoped, OAuth)
+├── .env.example
+├── package.json
+├── docs/
+│   ├── adr/
+│   │   └── adr-001-memory-design.md    decisão de design da camada de memória
+│   └── mcp-server.md                   configuração e auth do Managed MCP Server
+├── src/
+│   ├── agent/                   loop do agente, política, providers (Bedrock | mock)
+│   ├── memory/                  schema, hash-chain, store (append/recall/verify)
+│   ├── aws/                     cliente Bedrock (Titan embeddings + Claude reasoning)
+│   └── demo/                    CLI: decide | list | verify | tamper
+└── scripts/
+    ├── seed.ts                  popula casos históricos de exemplo
+    └── smoke.ts                 prova append + recall + verify + detecção de adulteração
+```
+
+Stack: TypeScript/Node (>= 20).
+
+## Como rodar
+
+```bash
+npm install
+cp .env.example .env          # preencher DATABASE_URL (e credenciais AWS, se PROVIDER=bedrock)
+
+npm run db:ping               # testa a conexão com o cluster
+npm run db:schema             # cria a tabela decisions + índice vetorial
+npm run seed                  # popula 6 casos históricos
+npm run demo -- decide "preciso de acesso admin ao banco de producao por 24h"
+npm run demo -- list
+npm run verify                # percorre a cadeia e confirma a integridade
+```
+
+O provider padrão é `mock`: embeddings por feature-hashing e raciocínio por regras, o que
+permite rodar a demo inteira sem AWS. Com `PROVIDER=bedrock` no `.env`, o agente usa Titan
+Embeddings e Claude via Bedrock.
+
+### Demonstração de tamper-evidence
+
+```bash
+npm run demo -- tamper 3      # altera um registro direto no banco, por fora do agente
+npm run verify                # detecta: cadeia COMPROMETIDA, quebrou em seq=3
+```
+
+O embedding entra no hash na forma canônica em que o banco o devolve, então adulterar o
+vetor — e não só o texto — também quebra a verificação.
+
+## Como o projeto responde a cada critério de julgamento
+
+| Critério | Como o ProofMemory responde |
+|---|---|
+| Agentic Memory Design | CockroachDB não é cache, é o sistema de registro da decisão do agente: semântico (vetor) e íntegro (hash-chain), distribuído e sempre disponível |
+| Technical Implementation | Integração real com MCP Server, Distributed Vector Indexing e ccloud CLI, não só uma chamada de exemplo |
+| Potencial de impacto | Qualquer agente que decide algo relevante (acesso, aprovação, triagem) precisa desse padrão, não é nicho |
+
+## Roadmap de implementação
+
+| # | Etapa | Status |
+|---|---|---|
+| 1 | Provisionar cluster CockroachDB, configurar MCP Server | cluster `short-possum` no ar (AWS us-east-1); MCP configurado e autenticado. Falta registrar no repo os comandos `ccloud` do provisionamento |
+| 2 | Criar schema de memória (embedding + hash-chain) | feito — tabela `decisions` aplicada, com índice vetorial |
+| 3 | Conectar Bedrock (Titan Embeddings + Claude) via SDK AWS | código escrito, **ainda não exercitado** contra a AWS (falta credencial) |
+| 4 | Loop do agente: recall → verificação de cadeia → raciocínio → commit | feito — `src/agent/agent.ts` |
+| 5 | Popular casos históricos de exemplo | feito — 6 casos semeados (com embeddings do provider `mock`; refazer ao ligar o Titan) |
+| 6 | Construir a demo (CLI) | feito — `decide` / `list` / `verify` / `tamper` |
+| 7 | Gravar vídeo de demonstração | pendente — pedido novo → recall de caso parecido → decisão → `verify` confirmando a integridade |
