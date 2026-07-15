@@ -58,3 +58,40 @@ Cada decisão do agente é gravada como um registro imutável: `decision_id`, em
 **UNKNOWN:** latência real da verificação de hash-chain em cadeia longa, não medida ainda, sem dado de produção equivalente.
 **RISK:** se o volume de casos históricos de exemplo for pequeno, a demonstração de busca vetorial pode não parecer convincente no vídeo.
 **EVIDENCE:** nenhuma ainda, é decisão pré-implementação.
+
+## Atualização — 2026-07-15 (pós-implementação)
+
+A decisão da seção 2 permanece inalterada e implementada como escrita. O que segue é
+apenas o que a implementação revelou sobre as incertezas declaradas acima.
+
+**ASSUMPTION → CONFIRMADA.** O cluster `short-possum` roda em plano Serverless/BASIC com
+spend limit de $0.00 (free tier), e a tabela `decisions` está no ar com `VECTOR(1024)` e
+índice `vector_l2_ops`, em uso pelo recall. Distributed Vector Indexing não custou nada
+além do free tier. Evidência: `ccloud cluster info short-possum` e o `create_statement` da
+tabela, ambos conferidos contra o cluster vivo.
+
+**Contrato de teste → SATISFEITO.** O "Como testar" acima está implementado em
+`scripts/smoke.ts` (`npm run smoke`) e passa contra o cluster real: recall vetorial retorna
+o caso correto em top-1 (distância 0.0955, contra ~26 dos irrelevantes), a cadeia verifica
+íntegra, e um `UPDATE` direto no banco por fora do agente é detectado no seq exato.
+
+**UNKNOWN (latência) → segue aberto, e a implementação deu forma ao risco.**
+`handleRequest` chama `verifyChain()` a cada decisão, e `verifyChain` varre a tabela inteira
+e recalcula o hash de todo registro. É O(n) por decisão, com n crescendo a cada decisão
+gravada — ou seja, custo quadrático no acumulado. Com 6 registros é irrelevante e a demo
+não sofre; em produção, não. Mitigações possíveis quando importar: verificar só o segmento
+recuperado pelo recall em vez da cadeia inteira, ou ancorar checkpoints periódicos e
+verificar a partir do último checkpoint. Fora do escopo do hackathon, registrado aqui para
+não virar surpresa.
+
+**RISK (volume de casos) → parcialmente mitigado.** 6 casos históricos semeados, cobrindo
+approve/deny/escalate. Suficiente para o recall ser demonstrável no vídeo; se parecer
+magro na gravação, ampliar o `CASES` em `scripts/seed.ts` é barato.
+
+**NOVO UNKNOWN:** o caminho Bedrock (`BedrockProvider`, Titan Embeddings + Claude) está
+escrito mas nunca foi exercitado contra a AWS — uma sondagem ao Titan em 15/07 retornou
+`CredentialsProviderError`. Os 6 casos atuais foram semeados com o provider `mock`
+(feature-hashing). A dimensão coincide (1024), então a troca para `PROVIDER=bedrock` não
+quebra nada de forma visível — mas é outro espaço vetorial, e o recall passaria a retornar
+resultados sem sentido em silêncio. Ao ligar o Bedrock, re-semear (`npm run seed`) antes de
+qualquer demo.

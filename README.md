@@ -73,8 +73,9 @@ que percorre a cadeia de hashes e confirma que nada foi alterado.
   [`docs/mcp-server.md`](docs/mcp-server.md).
 - **Distributed Vector Indexing** — guarda o embedding de cada decisão (`VECTOR(1024)` com
   índice `vector_l2_ops`) e permite buscar as decisões mais parecidas com o pedido atual.
-- **ccloud CLI** — provisionamento do cluster e configuração de rede feitos via CLI,
-  agent-ready.
+- **ccloud CLI** — todo o ciclo de vida do cluster (criação, usuário SQL, connection string,
+  inspeção) é feito por CLI, sem passar pela console web: caminho agent-ready, reproduzível
+  por um agente ou pipeline. Comandos em [`docs/provisioning.md`](docs/provisioning.md).
 
 **AWS (mínimo 1 exigida, projeto usa 1):**
 
@@ -93,7 +94,8 @@ proof-memory/
 ├── docs/
 │   ├── adr/
 │   │   └── adr-001-memory-design.md    decisão de design da camada de memória
-│   └── mcp-server.md                   configuração e auth do Managed MCP Server
+│   ├── mcp-server.md                   configuração e auth do Managed MCP Server
+│   └── provisioning.md                 provisionamento do cluster via ccloud CLI
 ├── src/
 │   ├── agent/                   loop do agente, política, providers (Bedrock | mock)
 │   ├── memory/                  schema, hash-chain, store (append/recall/verify)
@@ -146,7 +148,7 @@ vetor — e não só o texto — também quebra a verificação.
 
 | # | Etapa | Status |
 |---|---|---|
-| 1 | Provisionar cluster CockroachDB, configurar MCP Server | cluster `short-possum` no ar (AWS us-east-1); MCP configurado e autenticado. Falta registrar no repo os comandos `ccloud` do provisionamento |
+| 1 | Provisionar cluster CockroachDB via ccloud CLI, configurar MCP Server | feito — cluster `short-possum` no ar (Serverless, AWS us-east-1); MCP configurado e autenticado; comandos `ccloud` documentados em [`docs/provisioning.md`](docs/provisioning.md) |
 | 2 | Criar schema de memória (embedding + hash-chain) | feito — tabela `decisions` aplicada, com índice vetorial |
 | 3 | Conectar Bedrock (Titan Embeddings + Claude) via SDK AWS | código escrito, **ainda não exercitado** contra a AWS (falta credencial) |
 | 4 | Loop do agente: recall → verificação de cadeia → raciocínio → commit | feito — `src/agent/agent.ts` |
